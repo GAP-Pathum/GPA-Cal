@@ -1,0 +1,106 @@
+/* Basic layout and typography */
+:root{
+  --primary: #007bff;
+  --accent: #28a745;
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --text: #222;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+.container{
+  max-width:980px;
+  margin:28px auto;
+  padding:20px;
+  background:var(--card);
+  border-radius:10px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.06);
+}
+
+h1{margin:0 0 12px 0;text-align:center}
+.hint{color:#555;text-align:center;margin-bottom:18px}
+
+.button-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-bottom:12px;
+}
+.button-grid button{
+  padding:10px;
+  border-radius:6px;
+  background:var(--primary);
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+.controls{margin:12px 0 18px 0;display:flex;gap:8px;flex-wrap:wrap}
+.controls button{
+  padding:10px 12px;border-radius:6px;border:none;background:#333;color:#fff;cursor:pointer;
+}
+.controls button#calcFGPA{background:var(--primary)}
+.controls button#saveAll{background:#6f42c1}
+.controls button#loadAll{background:#17a2b8}
+.controls button#clearAll{background:#dc3545}
+
+.results{margin-top:10px}
+.results h3{margin:6px 0}
+#yearResults{margin-top:8px;color:#333}
+
+.doc-preview{margin-top:18px;border-top:1px solid #eee;padding-top:16px}
+.doc-preview img{max-width:100%;height:auto;border-radius:6px;box-shadow:0 4px 10px rgba(0,0,0,0.05)}
+
+/* Modal styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1200;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  padding: 40px 16px;
+  overflow: auto;
+}
+.modal.open { display:block; }
+
+.modal-content{
+  width:900px;
+  max-width:100%;
+  margin: 0 auto;
+  background:var(--card);
+  padding:18px;
+  border-radius:8px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.12);
+  position:relative;
+}
+
+.modal-header{display:flex;align-items:center;justify-content:space-between}
+.modal-header h2{margin:0}
+.close-btn{background:transparent;border:none;font-size:20px;cursor:pointer}
+
+.table-wrap{overflow:auto;margin-top:10px}
+table{width:100%;border-collapse:collapse}
+table th, table td{
+  padding:8px;border-bottom:1px solid #eee;text-align:left;
+}
+table input, table select{width:100%;padding:6px;border-radius:4px;border:1px solid #ddd}
+
+.row-actions{display:flex;gap:8px}
+.add-course{margin-top:10px;background:var(--accent);color:white;padding:8px 10px;border-radius:6px;border:none;cursor:pointer}
+.remove-row{background:#dc3545;color:white;padding:6px 8px;border-radius:6px;border:none;cursor:pointer}
+
+.sem-gpa{margin-top:10px;font-weight:600;text-align:right}
+
+/* small screens */
+@media (max-width:600px){
+  .button-grid{grid-template-columns:repeat(2,1fr)}
+}
