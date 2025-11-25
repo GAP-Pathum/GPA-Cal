@@ -146,6 +146,7 @@ tr.innerHTML = `
             <option value="6">6</option>
             <option value="7">7</option>
             <option value="8">8</option>
+            <option value=" ">None</option>
         </select>
     </td>
 
@@ -321,6 +322,34 @@ document.getElementById('clearAll').addEventListener('click', () => {
   document.getElementById('yearResults').innerHTML = '';
   document.getElementById('overallResult').textContent = 'Weighted FGPA: —';
   localStorage.removeItem(STORAGE_KEY);
+});
+
+// Print Results button logic
+document.getElementById('printResults').addEventListener('click', () => {
+  // Create a new window for printing
+  const fgpa = document.getElementById('overallResult').outerHTML;
+  const years = document.getElementById('yearResults').outerHTML;
+  const win = window.open('', '', 'width=800,height=600');
+  win.document.write(`
+    <html>
+      <head>
+        <title>Print Results</title>
+        <style>
+          body { font-family: system-ui, Arial, sans-serif; margin: 30px; }
+          h3 { margin-bottom: 12px; }
+          #yearResults > div { margin-bottom: 6px; }
+        </style>
+      </head>
+      <body>
+        <h2>GPA & FGPA Results</h2>
+        ${fgpa}
+        ${years}
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
 });
 
 /* -------------------------

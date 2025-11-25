@@ -42,12 +42,41 @@ h1{margin:0 0 12px 0;text-align:center}
   color:white;
   border:none;
   cursor:pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+.button-grid button:hover {
+  background: #0056b3;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  transform: translateY(-2px) scale(1.03);
 }
 .controls{margin:12px 0 18px 0;display:flex;gap:8px;flex-wrap:wrap}
 .controls button{
-  padding:10px 12px;border-radius:6px;border:none;background:#333;color:#fff;cursor:pointer;
+  padding:10px 12px;
+  border-radius:6px;
+  border:none;
+  background:#333;
+  color:#fff;
+  cursor:pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
 }
-.controls button#calcFGPA{background:var(--primary)}
+.controls button:hover {
+  background: #222;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  transform: translateY(-2px) scale(1.03);
+}
+.controls button#calcFGPA{
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgba(40,167,69,0.18);
+  color: #fff;
+  transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+.controls button#calcFGPA:hover {
+  background: #218838;
+  box-shadow: 0 4px 16px rgba(40,167,69,0.28);
+  transform: translateY(-2px) scale(1.03);
+}
 .controls button#saveAll{background:#6f42c1}
 .controls button#loadAll{background:#17a2b8}
 .controls button#clearAll{background:#dc3545}
@@ -57,7 +86,38 @@ h1{margin:0 0 12px 0;text-align:center}
 #yearResults{margin-top:8px;color:#333}
 
 .doc-preview{margin-top:18px;border-top:1px solid #eee;padding-top:16px}
-.doc-preview img{max-width:100%;height:auto;border-radius:6px;box-shadow:0 4px 10px rgba(0,0,0,0.05)}
+.doc-preview h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.08em;
+  color: #444;
+}
+.doc-preview button {
+  margin-right: 10px;
+  margin-bottom: 6px;
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 1em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+.doc-preview button:hover {
+  background: #0056b3;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  transform: translateY(-2px) scale(1.03);
+}
+.doc-preview button:last-child {
+  background: var(--accent);
+}
+.doc-preview button:hover {
+  background: #0056b3;
+}
+.doc-preview button:last-child:hover {
+  background: #218838;
+}
 
 /* Modal styles */
 .modal {
