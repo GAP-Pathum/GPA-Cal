@@ -14,26 +14,47 @@ import {
   getFirestore, collection, addDoc,
   getDocs, query, orderBy, serverTimestamp
 }                                                from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
-import { firebaseConfig }                        from './firebase-config.js';
-
-/* ─── Firebase Init ──────────────────────────────────────── */
-const app      = initializeApp(firebaseConfig);
-let analytics  = null;
-isSupported().then(supported => {
-  if (supported) {
-    analytics = getAnalytics(app);
-  }
-}).catch(err => {
-  console.warn("Firebase Analytics is not supported in this environment:", err);
-});
-const auth     = getAuth(app);
-const db       = getFirestore(app);
-const gProvider = new GoogleAuthProvider();
-
-/* ─── State ──────────────────────────────────────────────── */
+/* ─── State & Firebase Variables ─────────────────────────── */
+let firebaseConfig        = null;
+let app                   = null;
+let analytics             = null;
+let auth                  = null;
+let db                    = null;
+let gProvider             = null;
 let currentUser           = null;
 let pendingAfterSignIn    = null;
 let communityTemplates    = [];   // cache from Firestore
+
+// Try to load Firebase Config dynamically (to handle missing files on static hostings gracefully)
+try {
+  const configModule = await import('./firebase-config.js');
+  firebaseConfig = configModule.firebaseConfig;
+} catch (err) {
+  console.warn("firebase-config.js is missing. Cloud features (Firebase Auth & Firestore) will be disabled. Running in Local-Only mode.");
+}
+
+if (firebaseConfig) {
+  try {
+    app = initializeApp(firebaseConfig);
+    isSupported().then(supported => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    }).catch(err => {
+      console.warn("Firebase Analytics is not supported in this environment:", err);
+    });
+    auth = getAuth(app);
+    db = getFirestore(app);
+    gProvider = new GoogleAuthProvider();
+  } catch (err) {
+    console.error("Firebase initialization failed:", err);
+    firebaseConfig = null;
+    app = null;
+    auth = null;
+    db = null;
+    gProvider = null;
+  }
+}
 
 /* ─── Grade → GPA points ─────────────────────────────────── */
 const gradePoints = {
@@ -669,6 +690,7 @@ function loadTemplateIntoCalc(templateData) {
 
 /* Load all community templates from Firestore */
 async function fetchCommunityTemplates() {
+  if (!db) return;
   const group = document.getElementById('cloudGroup');
   group.innerHTML = '';
 
@@ -748,6 +770,7 @@ function handleAuthStateChange(user) {
 }
 
 async function doGoogleSignIn() {
+  if (!auth) return;
   try {
     await signInWithPopup(auth, gProvider);
     closeAuthModal();
@@ -761,6 +784,7 @@ async function doGoogleSignIn() {
 }
 
 async function doEmailSignIn() {
+  if (!auth) return;
   const email = document.getElementById('authEmail').value.trim();
   const pwd   = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authError');
@@ -776,6 +800,7 @@ async function doEmailSignIn() {
 }
 
 async function doEmailSignUp() {
+  if (!auth) return;
   const email = document.getElementById('authEmail').value.trim();
   const pwd   = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authError');
@@ -802,6 +827,10 @@ function runPending() {
    SAVE TEMPLATE TO FIRESTORE
    ═══════════════════════════════════════════════════════════ */
 async function confirmSaveTemplate() {
+  if (!db) {
+    showToast('Cloud database not available in Local-Only mode', 'error');
+    return;
+  }
   const btn     = document.getElementById('confirmSaveTemplate');
   const tName   = document.getElementById('templateName').value.trim();
   const tProg   = document.getElementById('templateProgram').value.trim();
@@ -865,8 +894,15 @@ function wireEvents() {
   });
 
   /* auth */
-  document.getElementById('signInBtn').addEventListener('click', () => openAuthModal());
+  document.getElementById('signInBtn').addEventListener('click', () => {
+    if (!auth) {
+      showToast('Cloud features not available in Local-Only mode', 'warning');
+      return;
+    }
+    openAuthModal();
+  });
   document.getElementById('signOutBtn').addEventListener('click', async () => {
+    if (!auth) return;
     await signOut(auth);
     showToast('Signed out', 'success');
   });
@@ -910,6 +946,10 @@ function wireEvents() {
   });
 
   document.getElementById('saveTemplateBtn').addEventListener('click', () => {
+    if (!auth || !db) {
+      showToast('Saving templates is not available in Local-Only mode', 'warning');
+      return;
+    }
     if (!currentUser) {
       openAuthModal(() => openSaveModal());
     } else {
@@ -980,7 +1020,12 @@ function init() {
   wireEvents();
 
   /* auth state listener */
-  onAuthStateChanged(auth, handleAuthStateChange);
+  if (auth) {
+    onAuthStateChanged(auth, handleAuthStateChange);
+  } else {
+    const signInBtn = document.getElementById('signInBtn');
+    if (signInBtn) signInBtn.style.display = 'none';
+  }
 
   /* restore local data if present */
   const raw = localStorage.getItem(STORAGE_KEY);
