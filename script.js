@@ -357,17 +357,18 @@ function closeOverlay(id) {
    ═══════════════════════════════════════════════════════════ */
 function getGpaClass(gpa) {
   if (isNaN(gpa)) return "gpa-muted";
-  if (gpa >= 3.7) return "gpa-excellent";
-  if (gpa >= 3.0) return "gpa-good";
-  if (gpa >= 2.0) return "gpa-fair";
-  return "gpa-poor";
+  if (gpa >= 3.7) return "gpa-excellent"; // First Class
+  if (gpa >= 3.3) return "gpa-good"; // Second Upper
+  if (gpa >= 2.7) return "gpa-fair"; // Second Lower
+  if (gpa >= 2.0) return "gpa-pass"; // Pass
+  return "gpa-poor"; // Below Pass
 }
 
 function getClassification(fgpa) {
   if (isNaN(fgpa)) return "";
   if (fgpa >= 3.7) return "🏅 First Class Honours";
   if (fgpa >= 3.3) return "🎖 Second Class Upper Honours";
-  if (fgpa >= 3.0) return "🎗 Second Class Lower Honours";
+  if (fgpa >= 2.7) return "🎗 Second Class Lower Honours";
   if (fgpa >= 2.0) return "✅ Pass";
   return "⚠️ Below Pass";
 }
@@ -407,11 +408,15 @@ function computeYearGPA(yearIndex) {
   const semA = 2 * yearIndex - 1,
     semB = 2 * yearIndex;
   let totalPoints = 0,
-    totalCredits = 0;
+    totalCredits = 0,
+    hasUngraded = false;
 
   [semA, semB].forEach((sem) => {
     document.querySelectorAll(`#table-sem-${sem} tbody tr`).forEach((row) => {
       const { grade, credit } = getRowData(row);
+      if (credit > 0 && !grade) {
+        hasUngraded = true; // credited course with no grade = year is incomplete
+      }
       if (grade && credit > 0) {
         totalPoints += (gradePoints[grade] ?? 0) * credit;
         totalCredits += credit;
@@ -419,8 +424,10 @@ function computeYearGPA(yearIndex) {
     });
   });
 
+  // Don't compute GPA for incomplete years — result would be inflated
+  if (hasUngraded) return { yearGpa: NaN, totalCredits, incomplete: true };
   const yearGpa = totalCredits > 0 ? totalPoints / totalCredits : NaN;
-  return { yearGpa, totalCredits };
+  return { yearGpa, totalCredits, incomplete: false };
 }
 
 function computeFGPA() {
@@ -428,14 +435,27 @@ function computeFGPA() {
   yearResDiv.innerHTML = "";
 
   let weightedSum = 0,
-    usedWeights = 0;
+    usedWeights = 0,
+    isPartial = false;
 
   for (let y = 1; y <= 4; y++) {
-    const { yearGpa, totalCredits } = computeYearGPA(y);
-    const display = isNaN(yearGpa) ? "—" : yearGpa.toFixed(2);
+    const { yearGpa, totalCredits, incomplete } = computeYearGPA(y);
     const weight = yearWeights[y];
     const semA = 2 * y - 1,
       semB = 2 * y;
+
+    // A year with no courses at all = not started yet (skip silently)
+    // A year with some courses but missing grades = incomplete (warn)
+    const notStarted = totalCredits === 0 && !incomplete;
+    if (incomplete) isPartial = true;
+    if (notStarted) isPartial = true;
+
+    const display = isNaN(yearGpa)
+      ? incomplete
+        ? "⚠ incomplete"
+        : "—"
+      : yearGpa.toFixed(2);
+    const gpaClass = incomplete ? "gpa-muted" : getGpaClass(yearGpa);
 
     const row = document.createElement("div");
     row.className = "year-result-row";
@@ -448,8 +468,8 @@ function computeFGPA() {
         </div>
       </div>
       <div class="year-row-right">
-        <span class="year-gpa-val ${getGpaClass(yearGpa)}">${display}</span>
-        <span class="year-credits-val">${totalCredits} cr</span>
+        <span class="year-gpa-val ${gpaClass}">${display}</span>
+        <span class="year-credits-val">${notStarted ? "—" : totalCredits + " cr"}</span>
       </div>`;
     yearResDiv.appendChild(row);
 
@@ -459,6 +479,8 @@ function computeFGPA() {
     }
   }
 
+  // Official formula: FGPA = sum(a_j * P_j), weights already sum to 1.0
+  // Only divide by usedWeights when partial so the estimate is proportional
   const fgpa = usedWeights > 0 ? weightedSum / usedWeights : NaN;
   const fgpaDisplay = isNaN(fgpa) ? "—" : fgpa.toFixed(2);
   const fgpaEl = document.getElementById("overallResult");
@@ -469,7 +491,16 @@ function computeFGPA() {
   fgpaEl.classList.remove("pop");
   void fgpaEl.offsetWidth;
   fgpaEl.classList.add("pop");
-  classEl.textContent = getClassification(fgpa);
+
+  // Show classification only when all 4 years are complete — otherwise show estimate notice
+  if (isPartial) {
+    classEl.textContent =
+      "⚠ Estimated — some years incomplete or have missing grades";
+    classEl.style.color = "var(--warning, #d97706)";
+  } else {
+    classEl.textContent = getClassification(fgpa);
+    classEl.style.color = "";
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
