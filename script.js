@@ -4,16 +4,16 @@
    ═══════════════════════════════════════════════════════════ */
 
 /* ─── State & Firebase Variables ─────────────────────────── */
-let app                   = null;
-let auth                  = null;
-let db                    = null;
-let gProvider             = null;
-let currentUser           = null;
-let pendingAfterSignIn    = null;
-let communityTemplates    = [];   // cache from Firestore
+let app = null;
+let auth = null;
+let db = null;
+let gProvider = null;
+let currentUser = null;
+let pendingAfterSignIn = null;
+let communityTemplates = []; // cache from Firestore
 
 // Check if Firebase is loaded and config exists (supports local double-click and fallback)
-if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined') {
+if (typeof firebase !== "undefined" && typeof firebaseConfig !== "undefined") {
   try {
     firebase.initializeApp(firebaseConfig);
     auth = firebase.auth();
@@ -26,15 +26,25 @@ if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined') {
     gProvider = null;
   }
 } else {
-  console.warn("Firebase or firebase-config.js is missing. Cloud features (Firebase Auth & Firestore) disabled. Local-Only mode active.");
+  console.warn(
+    "Firebase or firebase-config.js is missing. Cloud features (Firebase Auth & Firestore) disabled. Local-Only mode active.",
+  );
 }
 
 /* ─── Grade → GPA points ─────────────────────────────────── */
 const gradePoints = {
-  'A+': 4.00, 'A': 4.00, 'A-': 3.70,
-  'B+': 3.30, 'B': 3.00, 'B-': 2.70,
-  'C+': 2.30, 'C': 2.00, 'C-': 1.70,
-  'D+': 1.30, 'D': 1.00, 'E': 0.00
+  "A+": 4.0,
+  A: 4.0,
+  "A-": 3.7,
+  "B+": 3.3,
+  B: 3.0,
+  "B-": 2.7,
+  "C+": 2.3,
+  C: 2.0,
+  "C-": 1.7,
+  "D+": 1.3,
+  D: 1.0,
+  E: 0.0,
 };
 
 /* Year weights:  Y1=0.2  Y2=0.2  Y3=0.3  Y4=0.3 */
@@ -72,123 +82,246 @@ const creditOptionsHTML = `
 
 /* ─── IS Degree Template (built-in) ──────────────────────── */
 const IS_TEMPLATE = {
-  id: 'IS_BUILTIN',
-  name: 'Information Systems (Default)',
-  program: 'Information Systems',
+  id: "IS_BUILTIN",
+  name: "Information Systems (Default)",
+  program: "Information Systems",
   builtin: true,
   semesters: [
-    { semester: 1, courses: [
-      { code:'IS1101', name:'Fundamentals of Information Systems',           credits:2 },
-      { code:'IS1102', name:'Structured Programming Techniques',             credits:2 },
-      { code:'IS1103', name:'Structured Programming Practicum',              credits:1 },
-      { code:'IS1104', name:'Theories of Information Systems',               credits:2 },
-      { code:'IS1105', name:'Computer System Organization',                  credits:2 },
-      { code:'IS1106', name:'Foundations of Web Technologies',               credits:2 },
-      { code:'IS1107', name:'Personal Productivity with Information Technology', credits:1 },
-      { code:'IS1108', name:'Fundamentals of Mathematics',                   credits:2 },
-      { code:'IS1109', name:'Statistics & Probability Theory',               credits:2 },
-      { code:'IS1110', name:'Communication Skills I',                        credits:0 },
-      { code:'IS1111', name:'Academic Integrity',                            credits:0 },
-      { code:'IS-EGP-1101', name:'General English I',                        credits:0 },
-    ]},
-    { semester: 2, courses: [
-      { code:'IS2101', name:'Object Oriented Programming',                   credits:2 },
-      { code:'IS2102', name:'Object Oriented Programming Practicum',         credits:1 },
-      { code:'IS2103', name:'Emerging IS Technologies',                      credits:1 },
-      { code:'IS2104', name:'Database Systems',                              credits:2 },
-      { code:'IS2105', name:'Database Management Systems Practicum',         credits:1 },
-      { code:'IS2106', name:'System Analysis & Design',                      credits:1 },
-      { code:'IS2107', name:'Social & Professional Issues',                  credits:1 },
-      { code:'IS2108', name:'Human Computer Interaction',                    credits:2 },
-      { code:'IS2109', name:'Information Assurance & Security',              credits:2 },
-      { code:'IS2110', name:'Software Project Initiation & Planning',        credits:1 },
-      { code:'IS2111', name:'Advanced Mathematics',                          credits:2 },
-      { code:'IS2112', name:'Communication Skills II',                       credits:0 },
-      { code:'IS-EGP-1201', name:'General English II',                       credits:0 },
-    ]},
-    { semester: 3, courses: [
-      { code:'IS3101', name:'Object Oriented Analysis & Design',             credits:2 },
-      { code:'IS3102', name:'Data Structures & Algorithms',                  credits:2 },
-      { code:'IS3103', name:'IT Governance',                                 credits:2 },
-      { code:'IS3104', name:'Software Engineering',                          credits:2 },
-      { code:'IS3105', name:'IS Risk Management',                            credits:2 },
-      { code:'IS3106', name:'IS Sustainability',                             credits:1 },
-      { code:'IS3107', name:'Management Information Systems',                credits:2 },
-      { code:'IS3108', name:'E-Business',                                    credits:1 },
-      { code:'IS3109', name:'Digital Innovation',                            credits:2 },
-      { code:'IS-EAP-2101', name:'Academic English I',                       credits:0 },
-    ]},
-    { semester: 4, courses: [
-      { code:'IS4101', name:'IT Auditing',                                   credits:2 },
-      { code:'IS4102', name:'Web Application Development',                   credits:2 },
-      { code:'IS4103', name:'Operating Systems',                             credits:2 },
-      { code:'IS4104', name:'System Administration and Maintenance',         credits:2 },
-      { code:'IS4105', name:'IT Procurement Management',                     credits:1 },
-      { code:'IS4106', name:'Software Architecture',                         credits:2 },
-      { code:'IS4107', name:'Professionalism & Ethics in Computing',         credits:1 },
-      { code:'IS4108', name:'IS Strategies',                                 credits:1 },
-      { code:'IS4109', name:'Agile Software Development',                    credits:2 },
-      { code:'IS4110', name:'Capstone Project',                              credits:2 },
-      { code:'IS-EAP-2201', name:'Academic English II',                      credits:0 },
-    ]},
-    { semester: 5, courses: [
-      { code:'IS5101', name:'Entrepreneurship & Innovation',                 credits:1 },
-      { code:'IS5102', name:'Enterprise Architecture',                       credits:1 },
-      { code:'IS5103', name:'High Performance Computing',                    credits:2 },
-      { code:'IS5104', name:'Software Process Management',                   credits:1 },
-      { code:'IS5105', name:'Business Process Management',                   credits:2 },
-      { code:'IS5106', name:'UI/UX Practicum',                               credits:1 },
-      { code:'IS5107', name:'Project Management Practicum',                  credits:1 },
-      { code:'IS5108', name:'Business Intelligence',                         credits:2 },
-      { code:'IS5109', name:'IS Project for Community',                      credits:1 },
-      { code:'IS5110', name:'Advanced Database Systems [Elective]',          credits:2 },
-      { code:'IS5111', name:'Data Communication & Networks [Elective]',      credits:2 },
-      { code:'IS5112', name:'Design Patterns & Anti-patterns [Elective]',    credits:2 },
-      { code:'IS5113', name:'Software Quality Assurance [Elective]',         credits:2 },
-      { code:'IS5114', name:'Data Mining & Analytics [Elective]',            credits:2 },
-      { code:'IS-EBP-3101', name:'Business English',                         credits:0 },
-    ]},
-    { semester: 6, courses: [
-      { code:'IS6101', name:'Professional Practice',                         credits:6 },
-    ]},
-    { semester: 7, courses: [
-      { code:'IS7101', name:'Research Methodologies',                        credits:2 },
-      { code:'IS7102', name:'IT Law',                                        credits:1 },
-      { code:'IS7103', name:'Business Process Simulation',                   credits:2 },
-      { code:'IS7104', name:'Enterprise Modelling Ontologies',               credits:2 },
-      { code:'IS7105', name:'Organizational Behavior & Management',          credits:1 },
-      { code:'IS7106', name:'Cloud Computing',                               credits:2 },
-      { code:'IS7107', name:'Mobile Application Development [Elective]',     credits:1 },
-      { code:'IS7108', name:'Web Service Technologies [Elective]',           credits:2 },
-      { code:'IS7109', name:'Geographical Information Systems [Elective]',   credits:2 },
-      { code:'IS7110', name:'Statistical Distribution & Inferences [Elective]', credits:1 },
-      { code:'IS7111', name:'Advanced Programming Practicum [Elective]',     credits:1 },
-      { code:'IS7112', name:'Machine Learning [Elective]',                   credits:2 },
-    ]},
-    { semester: 8, courses: [
-      { code:'IS8101', name:'Research Project in IS',                        credits:8 },
-      { code:'IS8102', name:'Business/IT Alignment',                         credits:2 },
-      { code:'IS8103', name:'Human Resource Management',                     credits:2 },
-      { code:'IS8104', name:'Scientific Communication',                      credits:1 },
-      { code:'IS8105', name:'IS Economics',                                  credits:2 },
-      { code:'IS8106', name:'Computer System Security',                      credits:2 },
-      { code:'IS8107', name:'Supply Chain Management [Elective]',            credits:2 },
-      { code:'IS8108', name:'Advanced Computer Networks [Elective]',         credits:2 },
-      { code:'IS8109', name:'Process Mining [Elective]',                     credits:2 },
-      { code:'IS8110', name:'Digital Business Model [Elective]',             credits:1 },
-      { code:'IS8111', name:'Game Development [Elective]',                   credits:2 },
-    ]},
-  ]
+    {
+      semester: 1,
+      courses: [
+        {
+          code: "IS1101",
+          name: "Fundamentals of Information Systems",
+          credits: 2,
+        },
+        {
+          code: "IS1102",
+          name: "Structured Programming Techniques",
+          credits: 2,
+        },
+        {
+          code: "IS1103",
+          name: "Structured Programming Practicum",
+          credits: 1,
+        },
+        { code: "IS1104", name: "Theories of Information Systems", credits: 2 },
+        { code: "IS1105", name: "Computer System Organization", credits: 2 },
+        { code: "IS1106", name: "Foundations of Web Technologies", credits: 2 },
+        {
+          code: "IS1107",
+          name: "Personal Productivity with Information Technology",
+          credits: 1,
+        },
+        { code: "IS1108", name: "Fundamentals of Mathematics", credits: 2 },
+        { code: "IS1109", name: "Statistics & Probability Theory", credits: 2 },
+        { code: "IS1110", name: "Communication Skills I", credits: 0 },
+        { code: "IS1111", name: "Academic Integrity", credits: 0 },
+        { code: "IS-EGP-1101", name: "General English I", credits: 0 },
+      ],
+    },
+    {
+      semester: 2,
+      courses: [
+        { code: "IS2101", name: "Object Oriented Programming", credits: 2 },
+        {
+          code: "IS2102",
+          name: "Object Oriented Programming Practicum",
+          credits: 1,
+        },
+        { code: "IS2103", name: "Emerging IS Technologies", credits: 1 },
+        { code: "IS2104", name: "Database Systems", credits: 2 },
+        {
+          code: "IS2105",
+          name: "Database Management Systems Practicum",
+          credits: 1,
+        },
+        { code: "IS2106", name: "System Analysis & Design", credits: 1 },
+        { code: "IS2107", name: "Social & Professional Issues", credits: 1 },
+        { code: "IS2108", name: "Human Computer Interaction", credits: 2 },
+        {
+          code: "IS2109",
+          name: "Information Assurance & Security",
+          credits: 2,
+        },
+        {
+          code: "IS2110",
+          name: "Software Project Initiation & Planning",
+          credits: 1,
+        },
+        { code: "IS2111", name: "Advanced Mathematics", credits: 2 },
+        { code: "IS2112", name: "Communication Skills II", credits: 0 },
+        { code: "IS-EGP-1201", name: "General English II", credits: 0 },
+      ],
+    },
+    {
+      semester: 3,
+      courses: [
+        {
+          code: "IS3101",
+          name: "Object Oriented Analysis & Design",
+          credits: 2,
+        },
+        { code: "IS3102", name: "Data Structures & Algorithms", credits: 2 },
+        { code: "IS3103", name: "IT Governance", credits: 2 },
+        { code: "IS3104", name: "Software Engineering", credits: 2 },
+        { code: "IS3105", name: "IS Risk Management", credits: 2 },
+        { code: "IS3106", name: "IS Sustainability", credits: 1 },
+        { code: "IS3107", name: "Management Information Systems", credits: 2 },
+        { code: "IS3108", name: "E-Business", credits: 1 },
+        { code: "IS3109", name: "Digital Innovation", credits: 2 },
+        { code: "IS-EAP-2101", name: "Academic English I", credits: 0 },
+      ],
+    },
+    {
+      semester: 4,
+      courses: [
+        { code: "IS4101", name: "IT Auditing", credits: 2 },
+        { code: "IS4102", name: "Web Application Development", credits: 2 },
+        { code: "IS4103", name: "Operating Systems", credits: 2 },
+        {
+          code: "IS4104",
+          name: "System Administration and Maintenance",
+          credits: 2,
+        },
+        { code: "IS4105", name: "IT Procurement Management", credits: 1 },
+        { code: "IS4106", name: "Software Architecture", credits: 2 },
+        {
+          code: "IS4107",
+          name: "Professionalism & Ethics in Computing",
+          credits: 1,
+        },
+        { code: "IS4108", name: "IS Strategies", credits: 1 },
+        { code: "IS4109", name: "Agile Software Development", credits: 2 },
+        { code: "IS4110", name: "Capstone Project", credits: 2 },
+        { code: "IS-EAP-2201", name: "Academic English II", credits: 0 },
+      ],
+    },
+    {
+      semester: 5,
+      courses: [
+        { code: "IS5101", name: "Entrepreneurship & Innovation", credits: 1 },
+        { code: "IS5102", name: "Enterprise Architecture", credits: 1 },
+        { code: "IS5103", name: "High Performance Computing", credits: 2 },
+        { code: "IS5104", name: "Software Process Management", credits: 1 },
+        { code: "IS5105", name: "Business Process Management", credits: 2 },
+        { code: "IS5106", name: "UI/UX Practicum", credits: 1 },
+        { code: "IS5107", name: "Project Management Practicum", credits: 1 },
+        { code: "IS5108", name: "Business Intelligence", credits: 2 },
+        { code: "IS5109", name: "IS Project for Community", credits: 1 },
+        {
+          code: "IS5110",
+          name: "Advanced Database Systems [Elective]",
+          credits: 2,
+        },
+        {
+          code: "IS5111",
+          name: "Data Communication & Networks [Elective]",
+          credits: 2,
+        },
+        {
+          code: "IS5112",
+          name: "Design Patterns & Anti-patterns [Elective]",
+          credits: 2,
+        },
+        {
+          code: "IS5113",
+          name: "Software Quality Assurance [Elective]",
+          credits: 2,
+        },
+        {
+          code: "IS5114",
+          name: "Data Mining & Analytics [Elective]",
+          credits: 2,
+        },
+        { code: "IS-EBP-3101", name: "Business English", credits: 0 },
+      ],
+    },
+    {
+      semester: 6,
+      courses: [{ code: "IS6101", name: "Professional Practice", credits: 6 }],
+    },
+    {
+      semester: 7,
+      courses: [
+        { code: "IS7101", name: "Research Methodologies", credits: 2 },
+        { code: "IS7102", name: "IT Law", credits: 1 },
+        { code: "IS7103", name: "Business Process Simulation", credits: 2 },
+        { code: "IS7104", name: "Enterprise Modelling Ontologies", credits: 2 },
+        {
+          code: "IS7105",
+          name: "Organizational Behavior & Management",
+          credits: 1,
+        },
+        { code: "IS7106", name: "Cloud Computing", credits: 2 },
+        {
+          code: "IS7107",
+          name: "Mobile Application Development [Elective]",
+          credits: 1,
+        },
+        {
+          code: "IS7108",
+          name: "Web Service Technologies [Elective]",
+          credits: 2,
+        },
+        {
+          code: "IS7109",
+          name: "Geographical Information Systems [Elective]",
+          credits: 2,
+        },
+        {
+          code: "IS7110",
+          name: "Statistical Distribution & Inferences [Elective]",
+          credits: 1,
+        },
+        {
+          code: "IS7111",
+          name: "Advanced Programming Practicum [Elective]",
+          credits: 1,
+        },
+        { code: "IS7112", name: "Machine Learning [Elective]", credits: 2 },
+      ],
+    },
+    {
+      semester: 8,
+      courses: [
+        { code: "IS8101", name: "Research Project in IS", credits: 8 },
+        { code: "IS8102", name: "Business/IT Alignment", credits: 2 },
+        { code: "IS8103", name: "Human Resource Management", credits: 2 },
+        { code: "IS8104", name: "Scientific Communication", credits: 1 },
+        { code: "IS8105", name: "IS Economics", credits: 2 },
+        { code: "IS8106", name: "Computer System Security", credits: 2 },
+        {
+          code: "IS8107",
+          name: "Supply Chain Management [Elective]",
+          credits: 2,
+        },
+        {
+          code: "IS8108",
+          name: "Advanced Computer Networks [Elective]",
+          credits: 2,
+        },
+        { code: "IS8109", name: "Process Mining [Elective]", credits: 2 },
+        {
+          code: "IS8110",
+          name: "Digital Business Model [Elective]",
+          credits: 1,
+        },
+        { code: "IS8111", name: "Game Development [Elective]", credits: 2 },
+      ],
+    },
+  ],
 };
 
 /* ═══════════════════════════════════════════════════════════
    THEME
    ═══════════════════════════════════════════════════════════ */
-const THEME_KEY = 'gpa_theme';
+const THEME_KEY = "gpa_theme";
 
 function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('themeIcon').textContent = theme === 'dark' ? '☀️' : '🌙';
+  document.documentElement.setAttribute("data-theme", theme);
+  document.getElementById("themeIcon").textContent =
+    theme === "dark" ? "☀️" : "🌙";
   localStorage.setItem(THEME_KEY, theme);
 }
 
@@ -196,26 +329,26 @@ function applyTheme(theme) {
    TOAST
    ═══════════════════════════════════════════════════════════ */
 let toastTimer = null;
-function showToast(msg, type = 'success') {
-  const el = document.getElementById('toast');
+function showToast(msg, type = "success") {
+  const el = document.getElementById("toast");
   el.textContent = msg;
   el.className = `toast toast-${type} show`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3600);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 3600);
 }
 
 /* ═══════════════════════════════════════════════════════════
    OVERLAY HELPERS  (all modals share this)
    ═══════════════════════════════════════════════════════════ */
 function openOverlay(id) {
-  document.getElementById(id).classList.add('open');
-  document.body.classList.add('no-scroll');
+  document.getElementById(id).classList.add("open");
+  document.body.classList.add("no-scroll");
 }
 
 function closeOverlay(id) {
-  document.getElementById(id).classList.remove('open');
-  if (!document.querySelector('.modal-overlay.open')) {
-    document.body.classList.remove('no-scroll');
+  document.getElementById(id).classList.remove("open");
+  if (!document.querySelector(".modal-overlay.open")) {
+    document.body.classList.remove("no-scroll");
   }
 }
 
@@ -223,61 +356,64 @@ function closeOverlay(id) {
    GPA CLASSIFICATION
    ═══════════════════════════════════════════════════════════ */
 function getGpaClass(gpa) {
-  if (isNaN(gpa))  return 'gpa-muted';
-  if (gpa >= 3.70) return 'gpa-excellent';
-  if (gpa >= 3.00) return 'gpa-good';
-  if (gpa >= 2.00) return 'gpa-fair';
-  return 'gpa-poor';
+  if (isNaN(gpa)) return "gpa-muted";
+  if (gpa >= 3.7) return "gpa-excellent";
+  if (gpa >= 3.0) return "gpa-good";
+  if (gpa >= 2.0) return "gpa-fair";
+  return "gpa-poor";
 }
 
 function getClassification(fgpa) {
-  if (isNaN(fgpa)) return '';
-  if (fgpa >= 3.70) return '🏅 First Class Honours';
-  if (fgpa >= 3.30) return '🎖 Second Class Upper Honours';
-  if (fgpa >= 3.00) return '🎗 Second Class Lower Honours';
-  if (fgpa >= 2.00) return '✅ Pass';
-  return '⚠️ Below Pass';
+  if (isNaN(fgpa)) return "";
+  if (fgpa >= 3.7) return "🏅 First Class Honours";
+  if (fgpa >= 3.3) return "🎖 Second Class Upper Honours";
+  if (fgpa >= 3.0) return "🎗 Second Class Lower Honours";
+  if (fgpa >= 2.0) return "✅ Pass";
+  return "⚠️ Below Pass";
 }
 
 /* ═══════════════════════════════════════════════════════════
    GPA COMPUTATION ENGINE
    ═══════════════════════════════════════════════════════════ */
 function getRowData(row) {
-  const gradeEl  = row.querySelector('.grade-select');
-  const creditEl = row.querySelector('.credit-select');
-  const grade    = gradeEl  ? gradeEl.value  : '';
-  const credit   = creditEl ? parseFloat(creditEl.value) || 0 : 0;
+  const gradeEl = row.querySelector(".grade-select");
+  const creditEl = row.querySelector(".credit-select");
+  const grade = gradeEl ? gradeEl.value : "";
+  const credit = creditEl ? parseFloat(creditEl.value) || 0 : 0;
   return { grade, credit };
 }
 
 function computeSemesterGPA(sem) {
   const rows = document.querySelectorAll(`#table-sem-${sem} tbody tr`);
-  let totalPoints = 0, totalCredits = 0;
+  let totalPoints = 0,
+    totalCredits = 0;
 
-  rows.forEach(row => {
+  rows.forEach((row) => {
     const { grade, credit } = getRowData(row);
     if (grade && credit > 0) {
-      totalPoints  += (gradePoints[grade] ?? 0) * credit;
+      totalPoints += (gradePoints[grade] ?? 0) * credit;
       totalCredits += credit;
     }
   });
 
-  const gpa     = totalCredits > 0 ? totalPoints / totalCredits : NaN;
-  const display = isNaN(gpa) ? '—' : gpa.toFixed(2);
-  const chip    = document.getElementById(`sem-gpa-${sem}`);
+  const gpa = totalCredits > 0 ? totalPoints / totalCredits : NaN;
+  const display = isNaN(gpa) ? "—" : gpa.toFixed(2);
+  const chip = document.getElementById(`sem-gpa-${sem}`);
   if (chip) chip.textContent = `Semester GPA: ${display}`;
   return { gpa, totalCredits };
 }
 
 function computeYearGPA(yearIndex) {
-  const semA = 2 * yearIndex - 1, semB = 2 * yearIndex;
-  let totalPoints = 0, totalCredits = 0;
+  const semA = 2 * yearIndex - 1,
+    semB = 2 * yearIndex;
+  let totalPoints = 0,
+    totalCredits = 0;
 
-  [semA, semB].forEach(sem => {
-    document.querySelectorAll(`#table-sem-${sem} tbody tr`).forEach(row => {
+  [semA, semB].forEach((sem) => {
+    document.querySelectorAll(`#table-sem-${sem} tbody tr`).forEach((row) => {
       const { grade, credit } = getRowData(row);
       if (grade && credit > 0) {
-        totalPoints  += (gradePoints[grade] ?? 0) * credit;
+        totalPoints += (gradePoints[grade] ?? 0) * credit;
         totalCredits += credit;
       }
     });
@@ -288,19 +424,21 @@ function computeYearGPA(yearIndex) {
 }
 
 function computeFGPA() {
-  const yearResDiv = document.getElementById('yearResults');
-  yearResDiv.innerHTML = '';
+  const yearResDiv = document.getElementById("yearResults");
+  yearResDiv.innerHTML = "";
 
-  let weightedSum = 0, usedWeights = 0;
+  let weightedSum = 0,
+    usedWeights = 0;
 
   for (let y = 1; y <= 4; y++) {
     const { yearGpa, totalCredits } = computeYearGPA(y);
-    const display = isNaN(yearGpa) ? '—' : yearGpa.toFixed(2);
-    const weight  = yearWeights[y];
-    const semA    = 2 * y - 1, semB = 2 * y;
+    const display = isNaN(yearGpa) ? "—" : yearGpa.toFixed(2);
+    const weight = yearWeights[y];
+    const semA = 2 * y - 1,
+      semB = 2 * y;
 
-    const row = document.createElement('div');
-    row.className = 'year-result-row';
+    const row = document.createElement("div");
+    row.className = "year-result-row";
     row.innerHTML = `
       <div class="year-row-left">
         <div class="year-num-badge year-badge-${y}">${y}</div>
@@ -315,19 +453,22 @@ function computeFGPA() {
       </div>`;
     yearResDiv.appendChild(row);
 
-    if (!isNaN(yearGpa)) { weightedSum += yearGpa * weight; usedWeights += weight; }
+    if (!isNaN(yearGpa)) {
+      weightedSum += yearGpa * weight;
+      usedWeights += weight;
+    }
   }
 
-  const fgpa         = usedWeights > 0 ? weightedSum / usedWeights : NaN;
-  const fgpaDisplay  = isNaN(fgpa) ? '—' : fgpa.toFixed(2);
-  const fgpaEl       = document.getElementById('overallResult');
-  const classEl      = document.getElementById('fgpaClass');
+  const fgpa = usedWeights > 0 ? weightedSum / usedWeights : NaN;
+  const fgpaDisplay = isNaN(fgpa) ? "—" : fgpa.toFixed(2);
+  const fgpaEl = document.getElementById("overallResult");
+  const classEl = document.getElementById("fgpaClass");
 
   fgpaEl.textContent = fgpaDisplay;
-  fgpaEl.className   = `fgpa-value ${getGpaClass(fgpa)}`;
-  fgpaEl.classList.remove('pop');
+  fgpaEl.className = `fgpa-value ${getGpaClass(fgpa)}`;
+  fgpaEl.classList.remove("pop");
   void fgpaEl.offsetWidth;
-  fgpaEl.classList.add('pop');
+  fgpaEl.classList.add("pop");
   classEl.textContent = getClassification(fgpa);
 }
 
@@ -336,38 +477,40 @@ function computeFGPA() {
    ═══════════════════════════════════════════════════════════ */
 function addCourseRow(semNum, opts = {}) {
   const {
-    code         = '',
-    name         = '',
-    credits      = null,
-    grade        = '',
-    fromTemplate = false
+    code = "",
+    name = "",
+    credits = null,
+    grade = "",
+    fromTemplate = false,
   } = opts;
 
-  const tbody       = document.querySelector(`#table-sem-${semNum} tbody`);
-  const tr          = document.createElement('tr');
-  const isZero      = fromTemplate && credits === 0;
-  if (fromTemplate) tr.dataset.fromTemplate = 'true';
-  if (code)         tr.dataset.code         = code;
-  if (isZero)       tr.classList.add('zero-credit-row');
+  const tbody = document.querySelector(`#table-sem-${semNum} tbody`);
+  const tr = document.createElement("tr");
+  const isZero = fromTemplate && credits === 0;
+  if (fromTemplate) tr.dataset.fromTemplate = "true";
+  if (code) tr.dataset.code = code;
+  if (isZero) tr.classList.add("zero-credit-row");
 
   /* credit cell: locked badge for template rows, select for manual */
   const creditCell = fromTemplate
-    ? `${isZero
-        ? `<span class="credit-badge zero-credit" title="Non-credit — not included in GPA">NC</span>`
-        : `<span class="credit-badge">${credits}</span>`}
+    ? `${
+        isZero
+          ? `<span class="credit-badge zero-credit" title="Non-credit — not included in GPA">NC</span>`
+          : `<span class="credit-badge">${credits}</span>`
+      }
        <input type="hidden" class="credit-select" value="${credits ?? 0}" />`
     : `<select class="credit-select-el credit-select" aria-label="Credits">${creditOptionsHTML}</select>`;
 
   tr.innerHTML = `
     <td>
       <div class="course-cell">
-        ${code ? `<span class="course-code-badge" title="${code}">${code}</span>` : ''}
+        ${code ? `<span class="course-code-badge" title="${code}">${code}</span>` : ""}
         <input type="text" class="course-name" value="${escHtml(name)}"
                placeholder="Course name (optional)" aria-label="Course name" />
       </div>
     </td>
     <td>
-      <select class="grade-select${isZero ? ' grade-nc' : ''}" aria-label="Grade">
+      <select class="grade-select${isZero ? " grade-nc" : ""}" aria-label="Grade">
         ${gradeOptionsHTML}
       </select>
     </td>
@@ -381,20 +524,36 @@ function addCourseRow(semNum, opts = {}) {
     </td>`;
 
   /* set initial values */
-  const gradeEl  = tr.querySelector('.grade-select');
-  const creditEl = tr.querySelector('.credit-select');
+  const gradeEl = tr.querySelector(".grade-select");
+  const creditEl = tr.querySelector(".credit-select");
 
-  if (grade)                                    gradeEl.value = grade;
-  if (!fromTemplate && credits !== null && creditEl.tagName === 'SELECT') {
+  if (grade) gradeEl.value = grade;
+  if (!fromTemplate && credits !== null && creditEl.tagName === "SELECT") {
     creditEl.value = String(credits);
   }
 
   /* listeners */
-  const refresh = () => { computeSemesterGPA(semNum); updateSemCard(semNum); scheduleAutoSave(); };
-  gradeEl.addEventListener('change', refresh);
-  if (!fromTemplate && creditEl.tagName === 'SELECT') creditEl.addEventListener('change', refresh);
+  const refresh = () => {
+    computeSemesterGPA(semNum);
+    updateSemCard(semNum);
+    scheduleAutoSave();
+    /* instant live FGPA update */
+    for (let s = 1; s <= 8; s++) computeSemesterGPA(s);
+    computeFGPA();
+    /* pulse the card GPA */
+    const chip = document.getElementById(`cgpa-${semNum}`);
+    if (chip) {
+      chip.classList.remove("updated");
+      void chip.offsetWidth;
+      chip.classList.add("updated");
+      setTimeout(() => chip.classList.remove("updated"), 350);
+    }
+  };
+  gradeEl.addEventListener("change", refresh);
+  if (!fromTemplate && creditEl.tagName === "SELECT")
+    creditEl.addEventListener("change", refresh);
 
-  tr.querySelector('.btn-remove-row').addEventListener('click', () => {
+  tr.querySelector(".btn-remove-row").addEventListener("click", () => {
     tr.remove();
     computeSemesterGPA(semNum);
     updateSemCard(semNum);
@@ -406,25 +565,28 @@ function addCourseRow(semNum, opts = {}) {
 
 function escHtml(s) {
   return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /* ═══════════════════════════════════════════════════════════
    SEMESTER CARDS  (home page grid)
    ═══════════════════════════════════════════════════════════ */
 function buildSemCards() {
-  const grid = document.getElementById('semesterGrid');
-  grid.innerHTML = '';
+  const grid = document.getElementById("semesterGrid");
+  grid.innerHTML = "";
   for (let s = 1; s <= 8; s++) {
-    const y   = Math.ceil(s / 2);
-    const card = document.createElement('div');
-    card.className   = 'semester-card';
-    card.id          = `sem-card-${s}`;
+    const y = Math.ceil(s / 2);
+    const card = document.createElement("div");
+    card.className = "semester-card";
+    card.id = `sem-card-${s}`;
     card.dataset.year = y;
-    card.setAttribute('role', 'listitem');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', `Semester ${s} — click to open`);
+    card.setAttribute("role", "listitem");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Semester ${s} — click to open`);
     card.style.animationDelay = `${(s - 1) * 55}ms`;
 
     card.innerHTML = `
@@ -461,17 +623,21 @@ function buildSemCards() {
         </svg>
       </div>`;
 
-    card.addEventListener('click', () => openSemModal(s));
-    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openSemModal(s); });
+    card.addEventListener("click", () => openSemModal(s));
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") openSemModal(s);
+    });
     grid.appendChild(card);
   }
 }
 
 function updateSemCard(semNum) {
-  const rows   = document.querySelectorAll(`#table-sem-${semNum} tbody tr`);
-  let total = 0, credited = 0, graded = 0;
+  const rows = document.querySelectorAll(`#table-sem-${semNum} tbody tr`);
+  let total = 0,
+    credited = 0,
+    graded = 0;
 
-  rows.forEach(row => {
+  rows.forEach((row) => {
     total++;
     const { grade, credit } = getRowData(row);
     credited += credit;
@@ -479,18 +645,18 @@ function updateSemCard(semNum) {
   });
 
   const { gpa } = computeSemesterGPA(semNum);
-  const pct     = total > 0 ? Math.round((graded / total) * 100) : 0;
+  const pct = total > 0 ? Math.round((graded / total) * 100) : 0;
 
   const cgpa = document.getElementById(`cgpa-${semNum}`);
   if (cgpa) {
-    cgpa.textContent = isNaN(gpa) ? '—' : gpa.toFixed(2);
-    cgpa.className   = `card-gpa ${getGpaClass(gpa)}`;
+    cgpa.textContent = isNaN(gpa) ? "—" : gpa.toFixed(2);
+    cgpa.className = `card-gpa ${getGpaClass(gpa)}`;
   }
-  const ccEl  = document.getElementById(`cc-${semNum}`);
+  const ccEl = document.getElementById(`cc-${semNum}`);
   const ccrEl = document.getElementById(`ccr-${semNum}`);
   const cpfEl = document.getElementById(`cpf-${semNum}`);
   const cptEl = document.getElementById(`cpt-${semNum}`);
-  if (ccEl)  ccEl.textContent  = total;
+  if (ccEl) ccEl.textContent = total;
   if (ccrEl) ccrEl.textContent = credited;
   if (cpfEl) cpfEl.style.width = `${pct}%`;
   if (cptEl) cptEl.textContent = `${graded}/${total} graded`;
@@ -500,15 +666,15 @@ function updateSemCard(semNum) {
    SEMESTER MODALS
    ═══════════════════════════════════════════════════════════ */
 function buildSemModals() {
-  const container = document.getElementById('modals');
+  const container = document.getElementById("modals");
   for (let s = 1; s <= 8; s++) {
     const y = Math.ceil(s / 2);
-    const div = document.createElement('div');
-    div.className = 'modal-overlay';
-    div.id        = `modal-sem-${s}`;
-    div.setAttribute('role', 'dialog');
-    div.setAttribute('aria-modal', 'true');
-    div.setAttribute('aria-labelledby', `smtitle-${s}`);
+    const div = document.createElement("div");
+    div.className = "modal-overlay";
+    div.id = `modal-sem-${s}`;
+    div.setAttribute("role", "dialog");
+    div.setAttribute("aria-modal", "true");
+    div.setAttribute("aria-labelledby", `smtitle-${s}`);
 
     div.innerHTML = `
       <div class="modal-box sem-modal-box">
@@ -555,10 +721,18 @@ function buildSemModals() {
     container.appendChild(div);
 
     /* modal-level listeners */
-    document.getElementById(`sm-close-${s}`).addEventListener('click', () => closeSemModal(s));
-    document.getElementById(`sm-done-${s}`).addEventListener('click',  () => closeSemModal(s));
-    document.getElementById(`sm-add-${s}`).addEventListener('click',   () => addCourseRow(s));
-    div.addEventListener('click', e => { if (e.target === div) closeSemModal(s); });
+    document
+      .getElementById(`sm-close-${s}`)
+      .addEventListener("click", () => closeSemModal(s));
+    document
+      .getElementById(`sm-done-${s}`)
+      .addEventListener("click", () => closeSemModal(s));
+    document
+      .getElementById(`sm-add-${s}`)
+      .addEventListener("click", () => addCourseRow(s));
+    div.addEventListener("click", (e) => {
+      if (e.target === div) closeSemModal(s);
+    });
   }
 }
 
@@ -574,7 +748,7 @@ function closeSemModal(sem) {
 /* ═══════════════════════════════════════════════════════════
    LOCAL STORAGE  (auto-save / restore)
    ═══════════════════════════════════════════════════════════ */
-const STORAGE_KEY = 'gpa_data_v2';
+const STORAGE_KEY = "gpa_data_v2";
 let saveTimer = null;
 
 function scheduleAutoSave() {
@@ -586,13 +760,13 @@ function saveToLocal() {
   const data = {};
   for (let s = 1; s <= 8; s++) {
     data[`sem${s}`] = [];
-    document.querySelectorAll(`#table-sem-${s} tbody tr`).forEach(row => {
+    document.querySelectorAll(`#table-sem-${s} tbody tr`).forEach((row) => {
       data[`sem${s}`].push({
-        code:         row.dataset.code || '',
-        name:         row.querySelector('.course-name')?.value  || '',
-        grade:        row.querySelector('.grade-select')?.value || '',
-        credits:      row.querySelector('.credit-select')?.value ?? '',
-        fromTemplate: row.dataset.fromTemplate === 'true'
+        code: row.dataset.code || "",
+        name: row.querySelector(".course-name")?.value || "",
+        grade: row.querySelector(".grade-select")?.value || "",
+        credits: row.querySelector(".credit-select")?.value ?? "",
+        fromTemplate: row.dataset.fromTemplate === "true",
       });
     });
   }
@@ -601,24 +775,28 @@ function saveToLocal() {
 
 function loadFromLocal(raw) {
   let data;
-  try { data = JSON.parse(raw); } catch { return false; }
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return false;
+  }
 
   /* clear all */
   for (let s = 1; s <= 8; s++) {
-    document.querySelector(`#table-sem-${s} tbody`).innerHTML = '';
+    document.querySelector(`#table-sem-${s} tbody`).innerHTML = "";
   }
 
   let hasRows = false;
   for (let s = 1; s <= 8; s++) {
-    (data[`sem${s}`] || []).forEach(item => {
+    (data[`sem${s}`] || []).forEach((item) => {
       hasRows = true;
-      const cr = item.credits !== '' ? parseFloat(item.credits) : null;
+      const cr = item.credits !== "" ? parseFloat(item.credits) : null;
       addCourseRow(s, {
-        code:         item.code  || '',
-        name:         item.name  || '',
-        grade:        item.grade || '',
-        credits:      cr,
-        fromTemplate: !!item.fromTemplate
+        code: item.code || "",
+        name: item.name || "",
+        grade: item.grade || "",
+        credits: cr,
+        fromTemplate: !!item.fromTemplate,
       });
     });
     computeSemesterGPA(s);
@@ -633,59 +811,71 @@ function loadFromLocal(raw) {
 function loadTemplateIntoCalc(templateData) {
   /* clear all semesters */
   for (let s = 1; s <= 8; s++) {
-    document.querySelector(`#table-sem-${s} tbody`).innerHTML = '';
+    document.querySelector(`#table-sem-${s} tbody`).innerHTML = "";
   }
   /* reset results */
-  document.getElementById('yearResults').innerHTML = `
+  document.getElementById("yearResults").innerHTML = `
     <div class="placeholder-hint" id="resultPlaceholder">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
       </svg>
       <span>Enter grades then click <strong>Calculate FGPA</strong></span>
     </div>`;
-  const fv = document.getElementById('overallResult');
-  fv.textContent = '—'; fv.className = 'fgpa-value';
-  document.getElementById('fgpaClass').textContent = '';
+  const fv = document.getElementById("overallResult");
+  fv.textContent = "—";
+  fv.className = "fgpa-value";
+  document.getElementById("fgpaClass").textContent = "";
 
   /* fill courses */
-  (templateData.semesters || []).forEach(semData => {
+  (templateData.semesters || []).forEach((semData) => {
     const sn = semData.semester;
     if (sn < 1 || sn > 8) return;
-    (semData.courses || []).forEach(c => {
-      addCourseRow(sn, { code: c.code||'', name: c.name||'', credits: c.credits ?? 1, fromTemplate: true });
+    (semData.courses || []).forEach((c) => {
+      addCourseRow(sn, {
+        code: c.code || "",
+        name: c.name || "",
+        credits: c.credits ?? 1,
+        fromTemplate: true,
+      });
     });
   });
 
-  for (let s = 1; s <= 8; s++) { computeSemesterGPA(s); updateSemCard(s); }
+  for (let s = 1; s <= 8; s++) {
+    computeSemesterGPA(s);
+    updateSemCard(s);
+  }
   saveToLocal();
-  showToast(`✓ Loaded "${templateData.name}"`, 'success');
+  showToast(`✓ Loaded "${templateData.name}"`, "success");
 }
 
 /* Load all community templates from Firestore */
 async function fetchCommunityTemplates() {
   if (!db) return;
-  const group = document.getElementById('cloudGroup');
-  group.innerHTML = '';
+  const group = document.getElementById("cloudGroup");
+  group.innerHTML = "";
 
   try {
-    const snap = await db.collection('templates').orderBy('createdAt', 'desc').get();
+    const snap = await db
+      .collection("templates")
+      .orderBy("createdAt", "desc")
+      .get();
     communityTemplates = [];
 
-    snap.forEach(doc => {
+    snap.forEach((doc) => {
       communityTemplates.push({ id: doc.id, ...doc.data() });
     });
 
     if (communityTemplates.length > 0) {
-      group.style.display = '';
-      communityTemplates.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value       = t.id;
-        opt.textContent = `${t.name} — ${t.program || 'Custom'} (by ${t.displayName || 'User'})`;
+      group.style.display = "";
+      communityTemplates.forEach((t) => {
+        const opt = document.createElement("option");
+        opt.value = t.id;
+        opt.textContent = `${t.name} — ${t.program || "Custom"} (by ${t.displayName || "User"})`;
         group.appendChild(opt);
       });
     }
   } catch (err) {
-    console.warn('Could not load community templates:', err.message);
+    console.warn("Could not load community templates:", err.message);
   }
 }
 
@@ -695,49 +885,57 @@ async function fetchCommunityTemplates() {
 function openAuthModal(afterSignIn = null) {
   pendingAfterSignIn = afterSignIn;
   /* reset form */
-  document.getElementById('authEmail').value    = '';
-  document.getElementById('authPassword').value = '';
-  document.getElementById('authError').classList.add('hidden');
-  switchAuthTab('google');
-  openOverlay('authModal');
+  document.getElementById("authEmail").value = "";
+  document.getElementById("authPassword").value = "";
+  document.getElementById("authError").classList.add("hidden");
+  switchAuthTab("google");
+  openOverlay("authModal");
 }
-function closeAuthModal() { closeOverlay('authModal'); }
+function closeAuthModal() {
+  closeOverlay("authModal");
+}
 
 function openSaveModal() {
-  document.getElementById('templateName').value    = '';
-  document.getElementById('templateProgram').value = '';
-  openOverlay('saveTemplateModal');
+  document.getElementById("templateName").value = "";
+  document.getElementById("templateProgram").value = "";
+  openOverlay("saveTemplateModal");
 }
-function closeSaveModal() { closeOverlay('saveTemplateModal'); }
+function closeSaveModal() {
+  closeOverlay("saveTemplateModal");
+}
 
 function switchAuthTab(tab) {
-  const isGoogle = tab === 'google';
-  document.getElementById('tabGoogle').classList.toggle('active',  isGoogle);
-  document.getElementById('tabEmail').classList.toggle('active',  !isGoogle);
-  document.getElementById('panelGoogle').classList.toggle('hidden', !isGoogle);
-  document.getElementById('panelEmail').classList.toggle('hidden',  isGoogle);
-  document.getElementById('tabGoogle').setAttribute('aria-selected', String(isGoogle));
-  document.getElementById('tabEmail').setAttribute('aria-selected',  String(!isGoogle));
+  const isGoogle = tab === "google";
+  document.getElementById("tabGoogle").classList.toggle("active", isGoogle);
+  document.getElementById("tabEmail").classList.toggle("active", !isGoogle);
+  document.getElementById("panelGoogle").classList.toggle("hidden", !isGoogle);
+  document.getElementById("panelEmail").classList.toggle("hidden", isGoogle);
+  document
+    .getElementById("tabGoogle")
+    .setAttribute("aria-selected", String(isGoogle));
+  document
+    .getElementById("tabEmail")
+    .setAttribute("aria-selected", String(!isGoogle));
 }
 
 function handleAuthStateChange(user) {
   currentUser = user;
-  const chip      = document.getElementById('userChip');
-  const signInBtn = document.getElementById('signInBtn');
-  const avatar    = document.getElementById('userAvatar');
-  const nameEl    = document.getElementById('userName');
+  const chip = document.getElementById("userChip");
+  const signInBtn = document.getElementById("signInBtn");
+  const avatar = document.getElementById("userAvatar");
+  const nameEl = document.getElementById("userName");
 
   if (user) {
-    chip.classList.remove('hidden');
-    signInBtn.classList.add('hidden');
-    avatar.src     = user.photoURL  || '';
-    avatar.style.display = user.photoURL ? 'block' : 'none';
-    nameEl.textContent   = user.displayName || user.email || 'User';
+    chip.classList.remove("hidden");
+    signInBtn.classList.add("hidden");
+    avatar.src = user.photoURL || "";
+    avatar.style.display = user.photoURL ? "block" : "none";
+    nameEl.textContent = user.displayName || user.email || "User";
     /* load/refresh community templates on sign-in */
     fetchCommunityTemplates();
   } else {
-    chip.classList.add('hidden');
-    signInBtn.classList.remove('hidden');
+    chip.classList.add("hidden");
+    signInBtn.classList.remove("hidden");
   }
 }
 
@@ -746,44 +944,44 @@ async function doGoogleSignIn() {
   try {
     await auth.signInWithPopup(gProvider);
     closeAuthModal();
-    showToast('Signed in! 🎉', 'success');
+    showToast("Signed in! 🎉", "success");
     runPending();
   } catch (err) {
-    if (err.code !== 'auth/popup-closed-by-user') {
-      showToast('Sign-in failed — ' + err.message, 'error');
+    if (err.code !== "auth/popup-closed-by-user") {
+      showToast("Sign-in failed — " + err.message, "error");
     }
   }
 }
 
 async function doEmailSignIn() {
   if (!auth) return;
-  const email = document.getElementById('authEmail').value.trim();
-  const pwd   = document.getElementById('authPassword').value;
-  const errEl = document.getElementById('authError');
+  const email = document.getElementById("authEmail").value.trim();
+  const pwd = document.getElementById("authPassword").value;
+  const errEl = document.getElementById("authError");
   try {
     await auth.signInWithEmailAndPassword(email, pwd);
     closeAuthModal();
-    showToast('Signed in! 🎉', 'success');
+    showToast("Signed in! 🎉", "success");
     runPending();
   } catch (err) {
     errEl.textContent = err.message;
-    errEl.classList.remove('hidden');
+    errEl.classList.remove("hidden");
   }
 }
 
 async function doEmailSignUp() {
   if (!auth) return;
-  const email = document.getElementById('authEmail').value.trim();
-  const pwd   = document.getElementById('authPassword').value;
-  const errEl = document.getElementById('authError');
+  const email = document.getElementById("authEmail").value.trim();
+  const pwd = document.getElementById("authPassword").value;
+  const errEl = document.getElementById("authError");
   try {
     await auth.createUserWithEmailAndPassword(email, pwd);
     closeAuthModal();
-    showToast('Account created! 🎉', 'success');
+    showToast("Account created! 🎉", "success");
     runPending();
   } catch (err) {
     errEl.textContent = err.message;
-    errEl.classList.remove('hidden');
+    errEl.classList.remove("hidden");
   }
 }
 
@@ -800,16 +998,23 @@ function runPending() {
    ═══════════════════════════════════════════════════════════ */
 async function confirmSaveTemplate() {
   if (!db) {
-    showToast('Cloud database not available in Local-Only mode', 'error');
+    showToast("Cloud database not available in Local-Only mode", "error");
     return;
   }
-  const btn     = document.getElementById('confirmSaveTemplate');
-  const tName   = document.getElementById('templateName').value.trim();
-  const tProg   = document.getElementById('templateProgram').value.trim();
+  const btn = document.getElementById("confirmSaveTemplate");
+  const tName = document.getElementById("templateName").value.trim();
+  const tProg = document.getElementById("templateProgram").value.trim();
 
-  if (!tName) { showToast('Please enter a template name', 'warning'); return; }
+  if (!tName) {
+    showToast("Please enter a template name", "warning");
+    return;
+  }
 
-  if (!confirm(`Are you sure you want to save the template "${tName}"? Once saved, it will be visible to all users and cannot be deleted.`)) {
+  if (
+    !confirm(
+      `Are you sure you want to save the template "${tName}"? Once saved, it will be visible to all users and cannot be deleted.`,
+    )
+  ) {
     return;
   }
 
@@ -818,40 +1023,44 @@ async function confirmSaveTemplate() {
   for (let s = 1; s <= 8; s++) {
     const rows = document.querySelectorAll(`#table-sem-${s} tbody tr`);
     const courses = [];
-    rows.forEach(row => {
-      const cName  = row.querySelector('.course-name')?.value?.trim() || '';
-      const code   = row.dataset.code || '';
-      const credit = parseFloat(row.querySelector('.credit-select')?.value) || 0;
+    rows.forEach((row) => {
+      const cName = row.querySelector(".course-name")?.value?.trim() || "";
+      const code = row.dataset.code || "";
+      const credit =
+        parseFloat(row.querySelector(".credit-select")?.value) || 0;
       if (cName || code) courses.push({ code, name: cName, credits: credit });
     });
     if (courses.length) semesters.push({ semester: s, courses });
   }
 
   if (!semesters.length) {
-    showToast('No courses found. Load a template or add courses first.', 'warning');
+    showToast(
+      "No courses found. Load a template or add courses first.",
+      "warning",
+    );
     return;
   }
 
-  btn.disabled     = true;
-  btn.textContent  = 'Saving…';
+  btn.disabled = true;
+  btn.textContent = "Saving…";
 
   try {
-    await db.collection('templates').add({
-      uid:         currentUser.uid,
-      displayName: currentUser.displayName || currentUser.email || 'Anonymous',
-      name:        tName,
-      program:     tProg || 'Custom',
+    await db.collection("templates").add({
+      uid: currentUser.uid,
+      displayName: currentUser.displayName || currentUser.email || "Anonymous",
+      name: tName,
+      program: tProg || "Custom",
       semesters,
-      createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
     closeSaveModal();
-    showToast(`✓ Template "${tName}" saved to cloud!`, 'success');
+    showToast(`✓ Template "${tName}" saved to cloud!`, "success");
     await fetchCommunityTemplates();
   } catch (err) {
-    showToast('Save failed: ' + err.message, 'error');
+    showToast("Save failed: " + err.message, "error");
   } finally {
-    btn.disabled    = false;
-    btn.textContent = 'Confirm & Save to Cloud';
+    btn.disabled = false;
+    btn.textContent = "Confirm & Save to Cloud";
   }
 }
 
@@ -860,66 +1069,97 @@ async function confirmSaveTemplate() {
    ═══════════════════════════════════════════════════════════ */
 function wireEvents() {
   /* theme */
-  document.getElementById('themeToggle').addEventListener('click', () => {
-    const cur = document.documentElement.getAttribute('data-theme');
-    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme");
+    applyTheme(cur === "dark" ? "light" : "dark");
   });
 
   /* auth */
-  document.getElementById('signInBtn').addEventListener('click', () => {
+  document.getElementById("signInBtn").addEventListener("click", () => {
     if (!auth) {
-      showToast('Cloud features not available in Local-Only mode', 'warning');
+      showToast("Cloud features not available in Local-Only mode", "warning");
       return;
     }
     openAuthModal();
   });
-  document.getElementById('signOutBtn').addEventListener('click', async () => {
+  document.getElementById("signOutBtn").addEventListener("click", async () => {
     if (!auth) return;
     await auth.signOut();
-    showToast('Signed out', 'success');
+    showToast("Signed out", "success");
   });
-  document.getElementById('closeAuthModal').addEventListener('click', closeAuthModal);
-  document.getElementById('authModal').addEventListener('click', e => {
-    if (e.target.id === 'authModal') closeAuthModal();
+  document
+    .getElementById("closeAuthModal")
+    .addEventListener("click", closeAuthModal);
+  document.getElementById("authModal").addEventListener("click", (e) => {
+    if (e.target.id === "authModal") closeAuthModal();
   });
-  document.getElementById('tabGoogle').addEventListener('click', () => switchAuthTab('google'));
-  document.getElementById('tabEmail').addEventListener('click',  () => switchAuthTab('email'));
-  document.getElementById('googleSignInBtn').addEventListener('click', doGoogleSignIn);
-  document.getElementById('emailSignInBtn').addEventListener('click',  doEmailSignIn);
-  document.getElementById('emailSignUpBtn').addEventListener('click',  doEmailSignUp);
+  document
+    .getElementById("tabGoogle")
+    .addEventListener("click", () => switchAuthTab("google"));
+  document
+    .getElementById("tabEmail")
+    .addEventListener("click", () => switchAuthTab("email"));
+  document
+    .getElementById("googleSignInBtn")
+    .addEventListener("click", doGoogleSignIn);
+  document
+    .getElementById("emailSignInBtn")
+    .addEventListener("click", doEmailSignIn);
+  document
+    .getElementById("emailSignUpBtn")
+    .addEventListener("click", doEmailSignUp);
 
   /* save template modal */
-  document.getElementById('closeSaveTemplateModal').addEventListener('click', closeSaveModal);
-  document.getElementById('saveTemplateModal').addEventListener('click', e => {
-    if (e.target.id === 'saveTemplateModal') closeSaveModal();
-  });
-  document.getElementById('confirmSaveTemplate').addEventListener('click', confirmSaveTemplate);
+  document
+    .getElementById("closeSaveTemplateModal")
+    .addEventListener("click", closeSaveModal);
+  document
+    .getElementById("saveTemplateModal")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "saveTemplateModal") closeSaveModal();
+    });
+  document
+    .getElementById("confirmSaveTemplate")
+    .addEventListener("click", confirmSaveTemplate);
 
   /* template bar */
-  document.getElementById('loadTemplateBtn').addEventListener('click', () => {
-    const sel = document.getElementById('templateSelect');
+  document.getElementById("loadTemplateBtn").addEventListener("click", () => {
+    const sel = document.getElementById("templateSelect");
     const val = sel.value;
-    if (!val) { showToast('Please select a template first', 'warning'); return; }
+    if (!val) {
+      showToast("Please select a template first", "warning");
+      return;
+    }
 
     /* check existing data */
     let hasCourses = false;
     for (let s = 1; s <= 8; s++) {
-      if (document.querySelectorAll(`#table-sem-${s} tbody tr`).length > 0) { hasCourses = true; break; }
+      if (document.querySelectorAll(`#table-sem-${s} tbody tr`).length > 0) {
+        hasCourses = true;
+        break;
+      }
     }
-    if (hasCourses && !confirm('Loading will replace all current data. Continue?')) return;
+    if (
+      hasCourses &&
+      !confirm("Loading will replace all current data. Continue?")
+    )
+      return;
 
-    if (val === 'IS_BUILTIN') {
+    if (val === "IS_BUILTIN") {
       loadTemplateIntoCalc(IS_TEMPLATE);
     } else {
-      const t = communityTemplates.find(x => x.id === val);
+      const t = communityTemplates.find((x) => x.id === val);
       if (t) loadTemplateIntoCalc(t);
-      else showToast('Template not found', 'error');
+      else showToast("Template not found", "error");
     }
   });
 
-  document.getElementById('saveTemplateBtn').addEventListener('click', () => {
+  document.getElementById("saveTemplateBtn").addEventListener("click", () => {
     if (!auth || !db) {
-      showToast('Saving templates is not available in Local-Only mode', 'warning');
+      showToast(
+        "Saving templates is not available in Local-Only mode",
+        "warning",
+      );
       return;
     }
     if (!currentUser) {
@@ -930,51 +1170,59 @@ function wireEvents() {
   });
 
   /* FGPA calculate */
-  document.getElementById('calcFGPA').addEventListener('click', () => {
+  document.getElementById("calcFGPA").addEventListener("click", () => {
     for (let s = 1; s <= 8; s++) computeSemesterGPA(s);
     computeFGPA();
-    document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document
+      .getElementById("resultsPanel")
+      .scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
   /* local save */
-  document.getElementById('saveAll').addEventListener('click', () => {
+  document.getElementById("saveAll").addEventListener("click", () => {
     saveToLocal();
-    showToast('Saved to local storage ✓', 'success');
+    showToast("Saved to local storage ✓", "success");
   });
 
   /* local load */
-  document.getElementById('loadAll').addEventListener('click', () => {
+  document.getElementById("loadAll").addEventListener("click", () => {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) { showToast('No local data found', 'warning'); return; }
+    if (!raw) {
+      showToast("No local data found", "warning");
+      return;
+    }
     const ok = loadFromLocal(raw);
-    if (ok) showToast('Local data restored ✓', 'success');
-    else    showToast('Local data was empty', 'warning');
+    if (ok) showToast("Local data restored ✓", "success");
+    else showToast("Local data was empty", "warning");
   });
 
   /* clear all */
-  document.getElementById('clearAll').addEventListener('click', () => {
-    if (!confirm('Clear all semesters? This cannot be undone.')) return;
+  document.getElementById("clearAll").addEventListener("click", () => {
+    if (!confirm("Clear all semesters? This cannot be undone.")) return;
     for (let s = 1; s <= 8; s++) {
-      document.querySelector(`#table-sem-${s} tbody`).innerHTML = '';
+      document.querySelector(`#table-sem-${s} tbody`).innerHTML = "";
       computeSemesterGPA(s);
       updateSemCard(s);
     }
-    document.getElementById('yearResults').innerHTML = `
+    document.getElementById("yearResults").innerHTML = `
       <div class="placeholder-hint">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
         </svg>
         <span>Enter grades then click <strong>Calculate FGPA</strong></span>
       </div>`;
-    const fv = document.getElementById('overallResult');
-    fv.textContent = '—'; fv.className = 'fgpa-value';
-    document.getElementById('fgpaClass').textContent = '';
+    const fv = document.getElementById("overallResult");
+    fv.textContent = "—";
+    fv.className = "fgpa-value";
+    document.getElementById("fgpaClass").textContent = "";
     localStorage.removeItem(STORAGE_KEY);
-    showToast('All data cleared', 'success');
+    showToast("All data cleared", "success");
   });
 
   /* print */
-  document.getElementById('printResults').addEventListener('click', () => window.print());
+  document
+    .getElementById("printResults")
+    .addEventListener("click", () => window.print());
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -982,7 +1230,7 @@ function wireEvents() {
    ═══════════════════════════════════════════════════════════ */
 function init() {
   /* apply saved theme */
-  applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
+  applyTheme(localStorage.getItem(THEME_KEY) || "dark");
 
   /* build DOM */
   buildSemCards();
@@ -995,8 +1243,8 @@ function init() {
   if (auth) {
     auth.onAuthStateChanged(handleAuthStateChange);
   } else {
-    const signInBtn = document.getElementById('signInBtn');
-    if (signInBtn) signInBtn.style.display = 'none';
+    const signInBtn = document.getElementById("signInBtn");
+    if (signInBtn) signInBtn.style.display = "none";
   }
 
   /* restore local data if present */
@@ -1010,3 +1258,14 @@ function init() {
 }
 
 init();
+
+/* Buy Me a Coffee modal */
+document
+  .getElementById("bmcBtn")
+  .addEventListener("click", () => openOverlay("bmcModal"));
+document
+  .getElementById("closeBmcModal")
+  .addEventListener("click", () => closeOverlay("bmcModal"));
+document.getElementById("bmcModal").addEventListener("click", (e) => {
+  if (e.target.id === "bmcModal") closeOverlay("bmcModal");
+});
