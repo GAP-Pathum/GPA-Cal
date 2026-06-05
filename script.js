@@ -213,26 +213,31 @@ const IS_TEMPLATE = {
           code: "IS5110",
           name: "Advanced Database Systems [Elective]",
           credits: 2,
+          elective: true,
         },
         {
           code: "IS5111",
           name: "Data Communication & Networks [Elective]",
           credits: 2,
+          elective: true,
         },
         {
           code: "IS5112",
           name: "Design Patterns & Anti-patterns [Elective]",
           credits: 2,
+          elective: true,
         },
         {
           code: "IS5113",
           name: "Software Quality Assurance [Elective]",
           credits: 2,
+          elective: true,
         },
         {
           code: "IS5114",
           name: "Data Mining & Analytics [Elective]",
           credits: 2,
+          elective: true,
         },
         { code: "IS-EBP-3101", name: "Business English", credits: 0 },
       ],
@@ -258,28 +263,38 @@ const IS_TEMPLATE = {
           code: "IS7107",
           name: "Mobile Application Development [Elective]",
           credits: 1,
+          elective: true,
         },
         {
           code: "IS7108",
           name: "Web Service Technologies [Elective]",
           credits: 2,
+          elective: true,
         },
         {
           code: "IS7109",
           name: "Geographical Information Systems [Elective]",
           credits: 2,
+          elective: true,
         },
         {
           code: "IS7110",
           name: "Statistical Distribution & Inferences [Elective]",
           credits: 1,
+          elective: true,
         },
         {
           code: "IS7111",
           name: "Advanced Programming Practicum [Elective]",
           credits: 1,
+          elective: true,
         },
-        { code: "IS7112", name: "Machine Learning [Elective]", credits: 2 },
+        {
+          code: "IS7112",
+          name: "Machine Learning [Elective]",
+          credits: 2,
+          elective: true,
+        },
       ],
     },
     {
@@ -295,19 +310,32 @@ const IS_TEMPLATE = {
           code: "IS8107",
           name: "Supply Chain Management [Elective]",
           credits: 2,
+          elective: true,
         },
         {
           code: "IS8108",
           name: "Advanced Computer Networks [Elective]",
           credits: 2,
+          elective: true,
         },
-        { code: "IS8109", name: "Process Mining [Elective]", credits: 2 },
+        {
+          code: "IS8109",
+          name: "Process Mining [Elective]",
+          credits: 2,
+          elective: true,
+        },
         {
           code: "IS8110",
           name: "Digital Business Model [Elective]",
           credits: 1,
+          elective: true,
         },
-        { code: "IS8111", name: "Game Development [Elective]", credits: 2 },
+        {
+          code: "IS8111",
+          name: "Game Development [Elective]",
+          credits: 2,
+          elective: true,
+        },
       ],
     },
   ],
@@ -414,8 +442,12 @@ function computeYearGPA(yearIndex) {
   [semA, semB].forEach((sem) => {
     document.querySelectorAll(`#table-sem-${sem} tbody tr`).forEach((row) => {
       const { grade, credit } = getRowData(row);
-      if (credit > 0 && !grade) {
-        hasUngraded = true; // credited course with no grade = year is incomplete
+      const isElective = row.dataset.elective === "true";
+
+      // Only core credited courses trigger the incomplete flag —
+      // electives are optional so leaving them ungraded is expected
+      if (credit > 0 && !grade && !isElective) {
+        hasUngraded = true;
       }
       if (grade && credit > 0) {
         totalPoints += (gradePoints[grade] ?? 0) * credit;
@@ -424,7 +456,6 @@ function computeYearGPA(yearIndex) {
     });
   });
 
-  // Don't compute GPA for incomplete years — result would be inflated
   if (hasUngraded) return { yearGpa: NaN, totalCredits, incomplete: true };
   const yearGpa = totalCredits > 0 ? totalPoints / totalCredits : NaN;
   return { yearGpa, totalCredits, incomplete: false };
@@ -521,6 +552,7 @@ function addCourseRow(semNum, opts = {}) {
   if (fromTemplate) tr.dataset.fromTemplate = "true";
   if (code) tr.dataset.code = code;
   if (isZero) tr.classList.add("zero-credit-row");
+  if (opts.elective) tr.dataset.elective = "true";
 
   /* credit cell: locked badge for template rows, select for manual */
   const creditCell = fromTemplate
@@ -798,6 +830,7 @@ function saveToLocal() {
         grade: row.querySelector(".grade-select")?.value || "",
         credits: row.querySelector(".credit-select")?.value ?? "",
         fromTemplate: row.dataset.fromTemplate === "true",
+        elective: row.dataset.elective === "true",
       });
     });
   }
@@ -828,6 +861,7 @@ function loadFromLocal(raw) {
         grade: item.grade || "",
         credits: cr,
         fromTemplate: !!item.fromTemplate,
+        elective: !!item.elective,
       });
     });
     computeSemesterGPA(s);
