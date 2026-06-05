@@ -1,5 +1,5 @@
 # GPA-Cal git ignore
-firebase-config.js
+# firebase-config.js
 node_modules/
 .env
 .env.local
