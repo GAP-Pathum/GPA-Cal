@@ -3,21 +3,8 @@
    Firebase Auth + Firestore · Templates · GPA Engine · UI
    ═══════════════════════════════════════════════════════════ */
 
-import { initializeApp }                        from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
-import { getAnalytics, isSupported }             from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js';
-import {
-  getAuth, GoogleAuthProvider,
-  signInWithPopup, signInWithEmailAndPassword,
-  createUserWithEmailAndPassword, signOut, onAuthStateChanged
-}                                                from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
-import {
-  getFirestore, collection, addDoc,
-  getDocs, query, orderBy, serverTimestamp
-}                                                from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
 /* ─── State & Firebase Variables ─────────────────────────── */
-let firebaseConfig        = null;
 let app                   = null;
-let analytics             = null;
 let auth                  = null;
 let db                    = null;
 let gProvider             = null;
@@ -25,35 +12,21 @@ let currentUser           = null;
 let pendingAfterSignIn    = null;
 let communityTemplates    = [];   // cache from Firestore
 
-// Try to load Firebase Config dynamically (to handle missing files on static hostings gracefully)
-try {
-  const configModule = await import('./firebase-config.js');
-  firebaseConfig = configModule.firebaseConfig;
-} catch (err) {
-  console.warn("firebase-config.js is missing. Cloud features (Firebase Auth & Firestore) will be disabled. Running in Local-Only mode.");
-}
-
-if (firebaseConfig) {
+// Check if Firebase is loaded and config exists (supports local double-click and fallback)
+if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined') {
   try {
-    app = initializeApp(firebaseConfig);
-    isSupported().then(supported => {
-      if (supported) {
-        analytics = getAnalytics(app);
-      }
-    }).catch(err => {
-      console.warn("Firebase Analytics is not supported in this environment:", err);
-    });
-    auth = getAuth(app);
-    db = getFirestore(app);
-    gProvider = new GoogleAuthProvider();
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    gProvider = new firebase.auth.GoogleAuthProvider();
   } catch (err) {
     console.error("Firebase initialization failed:", err);
-    firebaseConfig = null;
-    app = null;
     auth = null;
     db = null;
     gProvider = null;
   }
+} else {
+  console.warn("Firebase or firebase-config.js is missing. Cloud features (Firebase Auth & Firestore) disabled. Local-Only mode active.");
 }
 
 /* ─── Grade → GPA points ─────────────────────────────────── */
@@ -695,8 +668,7 @@ async function fetchCommunityTemplates() {
   group.innerHTML = '';
 
   try {
-    const q = query(collection(db, 'templates'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
+    const snap = await db.collection('templates').orderBy('createdAt', 'desc').get();
     communityTemplates = [];
 
     snap.forEach(doc => {
@@ -772,7 +744,7 @@ function handleAuthStateChange(user) {
 async function doGoogleSignIn() {
   if (!auth) return;
   try {
-    await signInWithPopup(auth, gProvider);
+    await auth.signInWithPopup(gProvider);
     closeAuthModal();
     showToast('Signed in! 🎉', 'success');
     runPending();
@@ -789,7 +761,7 @@ async function doEmailSignIn() {
   const pwd   = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authError');
   try {
-    await signInWithEmailAndPassword(auth, email, pwd);
+    await auth.signInWithEmailAndPassword(email, pwd);
     closeAuthModal();
     showToast('Signed in! 🎉', 'success');
     runPending();
@@ -805,7 +777,7 @@ async function doEmailSignUp() {
   const pwd   = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authError');
   try {
-    await createUserWithEmailAndPassword(auth, email, pwd);
+    await auth.createUserWithEmailAndPassword(email, pwd);
     closeAuthModal();
     showToast('Account created! 🎉', 'success');
     runPending();
@@ -864,13 +836,13 @@ async function confirmSaveTemplate() {
   btn.textContent  = 'Saving…';
 
   try {
-    await addDoc(collection(db, 'templates'), {
+    await db.collection('templates').add({
       uid:         currentUser.uid,
       displayName: currentUser.displayName || currentUser.email || 'Anonymous',
       name:        tName,
       program:     tProg || 'Custom',
       semesters,
-      createdAt:   serverTimestamp()
+      createdAt:   firebase.firestore.FieldValue.serverTimestamp()
     });
     closeSaveModal();
     showToast(`✓ Template "${tName}" saved to cloud!`, 'success');
@@ -903,7 +875,7 @@ function wireEvents() {
   });
   document.getElementById('signOutBtn').addEventListener('click', async () => {
     if (!auth) return;
-    await signOut(auth);
+    await auth.signOut();
     showToast('Signed out', 'success');
   });
   document.getElementById('closeAuthModal').addEventListener('click', closeAuthModal);
@@ -1021,7 +993,7 @@ function init() {
 
   /* auth state listener */
   if (auth) {
-    onAuthStateChanged(auth, handleAuthStateChange);
+    auth.onAuthStateChanged(handleAuthStateChange);
   } else {
     const signInBtn = document.getElementById('signInBtn');
     if (signInBtn) signInBtn.style.display = 'none';
