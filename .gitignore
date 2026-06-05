@@ -1,0 +1,5 @@
+# GPA-Cal git ignore
+firebase-config.js
+node_modules/
+.env
+.env.local
